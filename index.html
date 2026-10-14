@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlanetMind — Federated, Explainable Multi-Agent AI for Global Risks</title>
+<style>
+:root{--bg:#050b14;--panel:#0b1626;--line:#1c2f4a;--fg:#d9e6f5;--mut:#7f95b0;--acc:#3de0c5;--low:#4ade80;--elev:#fbbf24;--crit:#f87171}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--acc)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+section{padding:72px 0;border-top:1px solid var(--line)}
+h1,h2,h3{line-height:1.2;margin:0 0 .5em}
+h2{font-size:clamp(1.5rem,3vw,2rem)}
+.eyebrow{font:12px ui-monospace,Menlo,monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--acc)}
+.lead{color:var(--mut);max-width:62ch}
+nav{position:sticky;top:0;z-index:5;background:rgba(5,11,20,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;justify-content:space-between;align-items:center;height:56px;gap:16px}
+nav b{letter-spacing:.05em}
+nav div a{margin-left:16px;color:var(--mut);text-decoration:none;font-size:14px}
+nav div a:hover{color:var(--acc)}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center;padding:56px 0}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem)}
+.hero .sub{font-size:1.05rem}
+canvas#globe{width:100%;max-width:460px;aspect-ratio:1;justify-self:center}
+.readout{display:inline-block;margin-top:20px;padding:14px 18px;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-family:ui-monospace,Menlo,monospace}
+.readout small{display:block;color:var(--mut);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.readout strong{font-size:2rem;color:var(--elev)}
+.btn{display:inline-block;margin-top:20px;margin-left:12px;padding:10px 18px;border-radius:8px;background:var(--acc);color:#04201b;font-weight:600;text-decoration:none}
+.tabs{display:flex;gap:8px;margin:24px 0 0;flex-wrap:wrap}
+.tabs button{background:var(--panel);color:var(--mut);border:1px solid var(--line);padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tabs button[aria-selected=true]{color:var(--acc);border-color:var(--acc)}
+.tabpanel{background:var(--panel);border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:24px}
+.tabpanel[hidden]{display:none}
+.tabpanel ul{margin:0;padding-left:20px;color:var(--mut)}
+.mesh{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center;margin-top:24px}
+svg#mesh{width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+svg .edge{stroke:var(--line);stroke-width:1.5}
+svg .node{cursor:pointer;outline:none}
+svg .node circle{fill:#0e2038;stroke:var(--acc);stroke-width:1.5;transition:fill .2s}
+svg .node:hover circle,svg .node:focus circle,svg .node.on circle{fill:#134b49}
+svg .node text{fill:var(--fg);font-size:11px;text-anchor:middle;pointer-events:none}
+#agentInfo{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;min-height:160px}
+#agentInfo h3{color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h3{font-size:1rem;margin-bottom:.3em}
+.card p{margin:0 0 10px;color:var(--mut);font-size:14px}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font:600 11px ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.08em;border:1px solid}
+.pill.low{color:var(--low)}.pill.elevated{color:var(--elev)}.pill.critical{color:var(--crit)}
+pre.trace{margin:24px 0 0;padding:20px;background:#02070d;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;overflow-x:auto;font:13px/1.7 ui-monospace,Menlo,monospace;color:#9ff3e4}
+pre.trace .d{color:var(--mut)}pre.trace .w{color:var(--elev)}
+.road{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.road li{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:10px;padding:16px}
+.road .ph{font:12px ui-monospace,Menlo,monospace;color:var(--acc)}
+.road p{margin:.3em 0 0;color:var(--mut);font-size:14px}
+.join{text-align:center}
+.join .lead{margin:0 auto}
+footer{padding:28px 0;text-align:center;color:var(--mut);font-size:13px;border-top:1px solid var(--line)}
+@media(max-width:760px){.hero,.mesh{grid-template-columns:1fr}nav div{display:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><b>● PlanetMind</b>
+<div><a href="#system">System</a><a href="#mesh-sec">Agents</a><a href="#risks">Risks</a><a href="#trace">Explainability</a><a href="#roadmap">Roadmap</a></div></div></nav>
+
+<header class="wrap hero">
+<div>
+<div class="eyebrow">Cloud-native · Federated · Explainable</div>
+<h1>PlanetMind</h1>
+<p class="sub lead">An intelligent digital “brain” for the planet that helps humanity anticipate and respond to major global challenges before they escalate.</p>
+<div class="readout" aria-live="polite"><small>Global risk index (illustrative)</small><strong id="riskVal">0.00</strong> <span id="riskLbl" class="pill elevated">elevated</span></div>
+<a class="btn" href="#join">Join the federation</a>
+</div>
+<canvas id="globe" width="460" height="460" role="img" aria-label="Rotating globe made of dots"></canvas>
+</header>
+
+<section id="system"><div class="wrap">
+<div class="eyebrow">System overview</div>
+<h2>A Cloud-Native Federated, Explainable Multi-Agent AI Platform for Predicting, Simulating, and Mitigating Global Risks</h2>
+<div class="tabs" role="tablist">
+<button role="tab" id="t0" aria-selected="true" aria-controls="p0">Predict</button>
+<button role="tab" id="t1" aria-selected="false" aria-controls="p1" tabindex="-1">Simulate</button>
+<button role="tab" id="t2" aria-selected="false" aria-controls="p2" tabindex="-1">Mitigate</button>
+</div>
+<div class="tabpanel" role="tabpanel" id="p0" aria-labelledby="t0">
+<h3>Anticipate before escalation</h3>
+<ul><li>Fuses satellite, sensor, health, economic and open-source signals.</li><li>Early-warning forecasts with calibrated uncertainty.</li><li>Federated learning keeps sensitive data where it lives.</li></ul></div>
+<div class="tabpanel" role="tabpanel" id="p1" aria-labelledby="t1" hidden>
+<h3>Explore what-if futures</h3>
+<ul><li>Agent-based and physical models run as coupled scenarios.</li><li>Stress-test cascading effects across domains.</li><li>Compare policy options side by side.</li></ul></div>
+<div class="tabpanel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+<h3>Turn insight into action</h3>
+<ul><li>Ranked, costed intervention playbooks.</li><li>Human-in-the-loop approval and audit trails.</li><li>Feedback from outcomes retrains every agent.</li></ul></div>
+</div></section>
+
+<section id="mesh-sec"><div class="wrap">
+<div class="eyebrow">Agent mesh</div>
+<h2>One Synthesis Core, five specialist agents</h2>
+<p class="lead">Click (or focus and press Enter) a node to see its role.</p>
+<div class="mesh">
+<svg id="mesh" viewBox="0 0 400 400" role="group" aria-label="Agent mesh diagram"></svg>
+<div id="agentInfo" aria-live="polite"></div>
+</div>
+</div></section>
+
+<section id="risks"><div class="wrap">
+<div class="eyebrow">Risk domains</div>
+<h2>Eight domains, one connected picture</h2>
+<div class="grid" id="riskGrid"></div>
+<p class="lead" style="margin-top:16px;font-size:13px">Severity levels are illustrative placeholders.</p>
+</div></section>
+
+<section id="trace"><div class="wrap">
+<div class="eyebrow">Explainability</div>
+<h2>Every prediction comes with a trace</h2>
+<p class="lead">A sample (fictional) trace showing how the Synthesis Core arrived at an alert.</p>
+<pre class="trace">
+<span class="d">// PLANETMIND · EXPLAIN · trace_id=pm-0427-A</span>
+QUERY        flood risk, Basin-7, horizon=14d
+STATUS       <span class="w">ELEVATED</span>  score=0.71  ci=[0.64,0.78]
+------------------------------------------------
+<span class="d">[climate-agent]</span>   rainfall anomaly +2.3σ        weight=0.38
+<span class="d">[infra-agent]</span>     levee capacity margin 11%     weight=0.24
+<span class="d">[society-agent]</span>   exposed population 1.2M       weight=0.19
+<span class="d">[economy-agent]</span>   supply-route dependency high  weight=0.12
+<span class="d">[health-agent]</span>    clinic access degraded        weight=0.07
+------------------------------------------------
+DATA         federated · 4 nodes · raw data never left origin
+COUNTERFACT  pre-release of reservoir → score 0.49
+ACTION       recommend staged release + evacuation prep (human approval req.)
+</pre>
+</div></section>
+
+<section id="roadmap"><div class="wrap">
+<div class="eyebrow">Roadmap</div>
+<h2>Four phases</h2>
+<ol class="road">
+<li><span class="ph">PHASE 01</span><h3>Foundations</h3><p>Federated data fabric, core platform and first specialist agents.</p></li>
+<li><span class="ph">PHASE 02</span><h3>Prediction</h3><p>Early-warning models across all eight risk domains.</p></li>
+<li><span class="ph">PHASE 03</span><h3>Simulation</h3><p>Coupled scenario engine and explainability tooling.</p></li>
+<li><span class="ph">PHASE 04</span><h3>Mitigation</h3><p>Decision support with partners and governments at global scale.</p></li>
+</ol>
+</div></section>
+
+<section id="join" class="join"><div class="wrap">
+<div class="eyebrow">Join the federation</div>
+<h2>Help build the planet’s brain</h2>
+<p class="lead">Researchers, agencies, companies and communities: contribute data, models and expertise while keeping control of what you share.</p>
+<a class="btn" style="margin-left:0" href="https://github.com/Charles9257/PlanetMind">Get involved</a>
+</div></section>
+<footer>PlanetMind · concept page · all figures illustrative</footer>
+
+<script>
+(function(){
+// Tabs
+var tabs=[].slice.call(document.querySelectorAll('[role=tab]'));
+function sel(i){tabs.forEach(function(t,j){var on=i===j;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!on;});tabs[i].focus();}
+tabs.forEach(function(t,i){t.addEventListener('click',function(){sel(i)});t.addEventListener('keydown',function(e){
+if(e.key==='ArrowRight')sel((i+1)%tabs.length);if(e.key==='ArrowLeft')sel((i+tabs.length-1)%tabs.length);});});
+
+// Agent mesh
+var agents=[
+{n:'Synthesis Core',d:'Fuses outputs from every specialist, reconciles conflicts, quantifies uncertainty and produces the final explainable assessment.'},
+{n:'Climate Agent',d:'Models weather, hydrology and ecosystems to forecast climate-driven hazards.'},
+{n:'Health Agent',d:'Tracks pathogens and health-system capacity to flag outbreaks early.'},
+{n:'Economy Agent',d:'Monitors markets, trade and supply chains for systemic shocks.'},
+{n:'Security Agent',d:'Analyses conflict, cyber and geopolitical signals for escalation risk.'},
+{n:'Society Agent',d:'Estimates exposure, vulnerability and migration of human populations.'}];
+var NS='http://www.w3.org/2000/svg',svg=document.getElementById('mesh'),info=document.getElementById('agentInfo'),nodes=[];
+function el(t,a,p){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
+var pos=[{x:200,y:200}];
+for(var i=0;i<5;i++){var a=-Math.PI/2+i*2*Math.PI/5;pos.push({x:200+135*Math.cos(a),y:200+135*Math.sin(a)});}
+for(i=1;i<6;i++){el('line',{"class":'edge',x1:pos[0].x,y1:pos[0].y,x2:pos[i].x,y2:pos[i].y});
+el('line',{"class":'edge',x1:pos[i].x,y1:pos[i].y,x2:pos[i%5+1].x,y2:pos[i%5+1].y});}
+function show(i){nodes.forEach(function(n,j){n.setAttribute('class','node'+(i===j?' on':''))});
+info.textContent='';var h=document.createElement('h3');h.textContent=agents[i].n;var p=document.createElement('p');p.textContent=agents[i].d;info.appendChild(h);info.appendChild(p);}
+agents.forEach(function(ag,i){var g=el('g',{"class":'node',tabindex:0,role:'button','aria-label':ag.n});
+el('circle',{cx:pos[i].x,cy:pos[i].y,r:i?32:42},g);
+var words=ag.n.split(' ');words.forEach(function(w,k){var t=el('text',{x:pos[i].x,y:pos[i].y+(k-(words.length-1)/2)*13+4},g);t.textContent=w;});
+g.addEventListener('click',function(){show(i)});g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show(i)}});nodes.push(g);});
+show(0);
+
+// Risk grid
+var risks=[['Climate & Weather','Extreme events and long-term shifts','elevated'],['Pandemics','Emerging pathogens and health capacity','low'],['Food & Water','Supply, scarcity and distribution','elevated'],['Energy & Infrastructure','Grid resilience and critical systems','low'],['Economic Stability','Financial contagion and supply chains','elevated'],['Conflict & Security','Escalation and instability','critical'],['Cyber & Technology','Systemic digital threats and AI misuse','critical'],['Biodiversity','Ecosystem collapse and species loss','elevated']];
+var grid=document.getElementById('riskGrid');
+risks.forEach(function(r){var c=document.createElement('div');c.className='card';
+var h=document.createElement('h3');h.textContent=r[0];var p=document.createElement('p');p.textContent=r[1];var s=document.createElement('span');s.className='pill '+r[2];s.textContent=r[2];
+c.appendChild(h);c.appendChild(p);c.appendChild(s);grid.appendChild(c);});
+
+// Globe
+var cv=document.getElementById('globe'),cx=cv.getContext('2d'),W=cv.width,R=W*0.42,pts=[],N=900;
+for(i=0;i<N;i++){var y=1-2*(i+.5)/N,r=Math.sqrt(1-y*y),th=Math.PI*(1+Math.sqrt(5))*i;pts.push([Math.cos(th)*r,y,Math.sin(th)*r]);}
+var rot=0,reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function draw(){cx.clearRect(0,0,W,W);var c=Math.cos(rot),s=Math.sin(rot),tilt=.4,ct=Math.cos(tilt),st=Math.sin(tilt);
+for(var k=0;k<N;k++){var p=pts[k],x=p[0]*c+p[2]*s,z=-p[0]*s+p[2]*c,yy=p[1]*ct-z*st,zz=p[1]*st+z*ct;
+if(zz<0)continue;cx.fillStyle='rgba(61,224,197,'+(0.2+0.8*zz).toFixed(2)+')';cx.fillRect(W/2+x*R,W/2-yy*R,2,2);}
+rot+=.004;if(!reduce)requestAnimationFrame(draw);}
+draw();
+
+// Risk readout
+var target=0.62,v=0,rv=document.getElementById('riskVal');
+function tick(){v+=(target-v)*.05;rv.textContent=v.toFixed(2);if(Math.abs(target-v)>.003)requestAnimationFrame(tick);else rv.textContent=target.toFixed(2);}
+tick();
+setInterval(function(){target=Math.round((0.55+Math.random()*0.15)*100)/100;tick();},4000);
+})();
+</script>
+</body>
+</html>
