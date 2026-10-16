@@ -35,3 +35,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Django collected static
+control-plane/staticfiles/

@@ -47,6 +47,35 @@ docker compose up --build
 
 Then open `http://localhost:5173`.
 
+## Deploy to Render
+
+The repo includes a [render.yaml](render.yaml) blueprint that provisions all three services plus a managed PostgreSQL database.
+
+### One-time setup
+
+1. Push this repo to GitHub (done).
+2. In the Render dashboard: **New → Blueprint** → connect the repo. Render reads `render.yaml` and creates:
+   - `planetmind-backend` (FastAPI, Docker) — `https://planetmind-backend.onrender.com`
+   - `planetmind-control-plane` (Django, Docker + gunicorn) — `https://planetmind-control-plane.onrender.com`
+   - `planetmind-frontend` (static site) — `https://planetmind-frontend.onrender.com`
+   - `planetmind-postgres` (managed PostgreSQL, wired to both services)
+3. Before first deploy, set these **sync:false** variables in the Render dashboard:
+   - `CONTROL_PLANE_SERVICE_CLIENT_SECRET` on **both** backend and control-plane — generate one shared value (32+ chars) and paste it into both
+   - `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` on the control-plane — the first deploy seeds your org + admin account automatically
+4. After the first successful deploy, remove the `BOOTSTRAP_*` variables (they are no longer needed).
+
+### Verify the deployment
+
+- Backend: `https://planetmind-backend.onrender.com/` (status page) and `/api/v1/health`
+- Control-plane: `https://planetmind-control-plane.onrender.com/` (status page) and `/control/health`
+- Frontend: `https://planetmind-frontend.onrender.com`
+
+### Notes
+
+- Free-tier services sleep after ~15 minutes idle; the first request after sleep takes ~30–60 seconds.
+- Free Render PostgreSQL expires after 90 days — upgrade or export before then for anything you want to keep.
+- If you rename a service, update the matching `*.onrender.com` URLs in `render.yaml` (backend's `CONTROL_PLANE_BASE_URL`, control-plane's `DJANGO_ALLOWED_HOSTS`/`DJANGO_CSRF_TRUSTED_ORIGINS`, frontend's `VITE_*` vars) and redeploy.
+
 ## One-command startup on Windows
 
 From the project root:
