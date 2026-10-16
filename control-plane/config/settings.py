@@ -88,12 +88,14 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "sqlite")
 if DB_ENGINE == "postgres":
+    if not os.getenv("DJANGO_DB_PASSWORD"):
+        raise ImproperlyConfigured("DJANGO_DB_PASSWORD must be set when DJANGO_DB_ENGINE=postgres")
     DATABASES = {
         "default": {
             "ENGINE": "django_prometheus.db.backends.postgresql",
             "NAME": os.getenv("DJANGO_DB_NAME", "planetmind_db"),
             "USER": os.getenv("DJANGO_DB_USER", "postgres"),
-            "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", "9257Charles"),
+            "PASSWORD": os.environ["DJANGO_DB_PASSWORD"],
             "HOST": os.getenv("DJANGO_DB_HOST", "localhost"),
             "PORT": os.getenv("DJANGO_DB_PORT", "5432"),
         }

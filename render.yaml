@@ -25,12 +25,13 @@ services:
           property: connectionString
       - key: CONTROL_PLANE_BASE_URL
         value: https://planetmind-control-plane.onrender.com
+      # Free-tier control plane sleeps and takes ~50s to wake; set ENFORCE to "true" on always-on plans
       - key: CONTROL_PLANE_ENFORCE_GOVERNANCE
-        value: "true"
+        value: "false"
       - key: CONTROL_PLANE_SYNC_ENABLED
         value: "true"
       - key: CONTROL_PLANE_TIMEOUT_SECONDS
-        value: "10"
+        value: "60"
       - key: CONTROL_PLANE_SERVICE_CLIENT_ID
         value: planetmind-backend
       - key: CONTROL_PLANE_SERVICE_CLIENT_SECRET
@@ -51,10 +52,11 @@ services:
         value: "false"
       - key: DJANGO_SECRET_KEY
         generateValue: true
+      # Wildcards so a suffixed Render hostname (name collision) doesn't break health checks
       - key: DJANGO_ALLOWED_HOSTS
-        value: planetmind-control-plane.onrender.com
+        value: .onrender.com
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
-        value: https://planetmind-control-plane.onrender.com
+        value: https://*.onrender.com
       - key: DJANGO_CORS_ALLOW_ALL
         value: "true"
       - key: DJANGO_DB_ENGINE
@@ -100,17 +102,14 @@ services:
   # ---------- React frontend (static site) ----------
   - type: web
     name: planetmind-frontend
-    runtime: static
-    plan: free
+    runtime: static # static sites have no compute plan, so no `plan:` key here
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-    pullRequestPreviewsEnabled: true
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
     envVars:
+      - key: NODE_VERSION
+        value: "22" # Vite 8 needs Node 20.19+ / 22.12+
+      # VITE_* values are baked in at build time; update and redeploy if Render suffixes the hostnames
       - key: VITE_API_BASE_URL
         value: https://planetmind-backend.onrender.com
       - key: VITE_CONTROL_PLANE_BASE_URL
