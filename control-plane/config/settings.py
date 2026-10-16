@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -88,18 +89,39 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "sqlite")
 if DB_ENGINE == "postgres":
-    if not os.getenv("DJANGO_DB_PASSWORD"):
-        raise ImproperlyConfigured("DJANGO_DB_PASSWORD must be set when DJANGO_DB_ENGINE=postgres")
-    DATABASES = {
-        "default": {
-            "ENGINE": "django_prometheus.db.backends.postgresql",
-            "NAME": os.getenv("DJANGO_DB_NAME", "planetmind_db"),
-            "USER": os.getenv("DJANGO_DB_USER", "postgres"),
-            "PASSWORD": os.environ["DJANGO_DB_PASSWORD"],
-            "HOST": os.getenv("DJANGO_DB_HOST", "localhost"),
-            "PORT": os.getenv("DJANGO_DB_PORT", "5432"),
+    _database_url = os.getenv("DATABASE_URL", "").strip()
+    if _database_url:
+        # Single connection string (Neon, Supabase, Render, ...); takes precedence over DJANGO_DB_*.
+        _parsed = urlparse(_database_url)
+        if _parsed.scheme not in {"postgres", "postgresql"} or not _parsed.path.lstrip("/"):
+            raise ImproperlyConfigured("DATABASE_URL must look like postgresql://user:password@host:port/dbname")
+        _db_options = {key: values[-1] for key, values in parse_qs(_parsed.query).items() if key == "sslmode"}
+        DATABASES = {
+            "default": {
+                "ENGINE": "django_prometheus.db.backends.postgresql",
+                "NAME": unquote(_parsed.path.lstrip("/")),
+                "USER": unquote(_parsed.username or ""),
+                "PASSWORD": unquote(_parsed.password or ""),
+                "HOST": _parsed.hostname or "localhost",
+                "PORT": str(_parsed.port or 5432),
+                "OPTIONS": _db_options,
+            }
         }
-    }
+    else:
+        if not os.getenv("DJANGO_DB_PASSWORD"):
+            raise ImproperlyConfigured(
+                "Set DATABASE_URL, or DJANGO_DB_PASSWORD (plus DJANGO_DB_*), when DJANGO_DB_ENGINE=postgres"
+            )
+        DATABASES = {
+            "default": {
+                "ENGINE": "django_prometheus.db.backends.postgresql",
+                "NAME": os.getenv("DJANGO_DB_NAME", "planetmind_db"),
+                "USER": os.getenv("DJANGO_DB_USER", "postgres"),
+                "PASSWORD": os.environ["DJANGO_DB_PASSWORD"],
+                "HOST": os.getenv("DJANGO_DB_HOST", "localhost"),
+                "PORT": os.getenv("DJANGO_DB_PORT", "5432"),
+            }
+        }
 else:
     DATABASES = {
         "default": {

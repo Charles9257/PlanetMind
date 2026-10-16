@@ -1,13 +1,10 @@
 # Render Blueprint for PlanetMind
 # Deploy: Render Dashboard -> New -> Blueprint -> connect this repo.
-# Render reads this file and provisions all services + the Postgres database.
-
-databases:
-  - name: planetmind-postgres
-    plan: free
-    databaseName: planetmind
-    user: planetmind
-    ipAllowList: [] # Render-internal only
+# Render reads this file and provisions the services.
+#
+# Database: Render allows only one free Postgres per account, so PlanetMind uses an external
+# free Postgres (Neon / Supabase). Create it there and paste its connection string
+# (postgresql://user:password@host/dbname?sslmode=require) as DATABASE_URL on BOTH services.
 
 services:
   # ---------- FastAPI intelligence plane ----------
@@ -20,9 +17,7 @@ services:
     healthCheckPath: /api/v1/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: planetmind-postgres
-          property: connectionString
+        sync: false # external Postgres connection string; same value as control-plane
       - key: CONTROL_PLANE_BASE_URL
         value: https://planetmind-control-plane.onrender.com
       # Free-tier control plane sleeps and takes ~50s to wake; set ENFORCE to "true" on always-on plans
@@ -61,26 +56,8 @@ services:
         value: "true"
       - key: DJANGO_DB_ENGINE
         value: postgres
-      - key: DJANGO_DB_NAME
-        fromDatabase:
-          name: planetmind-postgres
-          property: database
-      - key: DJANGO_DB_USER
-        fromDatabase:
-          name: planetmind-postgres
-          property: user
-      - key: DJANGO_DB_PASSWORD
-        fromDatabase:
-          name: planetmind-postgres
-          property: password
-      - key: DJANGO_DB_HOST
-        fromDatabase:
-          name: planetmind-postgres
-          property: host
-      - key: DJANGO_DB_PORT
-        fromDatabase:
-          name: planetmind-postgres
-          property: port
+      - key: DATABASE_URL
+        sync: false # external Postgres connection string; same value as backend
       - key: CONTROL_PLANE_JWT_ISSUER
         value: planetmind-control-plane
       - key: CONTROL_PLANE_JWT_AUDIENCE
