@@ -34,6 +34,19 @@ def test_sync_model_run_registration_degrades_gracefully_when_control_plane_unre
     assert "unreachable" in (result["governance_error"] or "").lower()
 
 
+def test_sync_model_run_registration_degrades_gracefully_when_token_is_rejected(governance_client, monkeypatch) -> None:
+    # A reachable control plane that rejects the service credentials (e.g. mismatched secret)
+    # must not turn model training into a 500.
+    def reject_token(*args, **kwargs):
+        raise governance_client.GovernanceApprovalError(503, "Failed to obtain governance service token")
+
+    monkeypatch.setattr(governance_client, "_get_service_access_token", reject_token)
+    result = governance_client.sync_model_run_registration(model_run_id=1, model_version=1, is_active=True)
+    assert result["governance_synced"] is False
+    assert result["governance_status"] == "error"
+    assert "service token" in (result["governance_error"] or "").lower()
+
+
 def test_ensure_model_promotion_is_approved_raises_when_control_plane_unreachable(governance_client) -> None:
     with pytest.raises(governance_client.GovernanceApprovalError) as exc_info:
         governance_client.ensure_model_promotion_is_approved(model_run_id=1)

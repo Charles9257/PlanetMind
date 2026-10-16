@@ -96,6 +96,13 @@ def sync_model_run_registration(
             "governance_status": "error",
             "governance_error": f"Governance registry sync unreachable: {exc}",
         }
+    except GovernanceApprovalError as exc:
+        # Token request was rejected (e.g. mismatched client secret); don't fail model training over it.
+        return {
+            "governance_synced": False,
+            "governance_status": "error",
+            "governance_error": f"Governance registry sync failed: {exc.detail}",
+        }
 
     if response.status_code >= 400:
         return {
